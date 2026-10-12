@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/><meta name="referrer" content="no-referrer">
+<title>宝贝回家 - 公益寻人站</title>
+<meta name="description" content="公益寻人项目：展示走失儿童信息，让更多人看到、了解到这些信息，帮助走失的孩子回家。">
+<script src="//cdn.zhaolinlang.com/cdn.dnpw.org/404/v3.min.js" maincolor="#f00" tips="宝贝回家 公益寻人站" error="愿每一个孩子都能早日回家" jumptime="-1" jumptarget="/" charset="utf-8"></script>
+<script>
+function diy(){
+  /* 浏览上一位 / 浏览下一位：在走失儿童之间切换
+     走联盟官方 diy() 扩展口：克隆替换按钮以移除原事件（跳转首页/浏览器后退），再绑定翻页 */
+  function rebind(sel, label){
+    var old = document.querySelector(sel);
+    if(!old) return null;
+    var neo = old.cloneNode(true); /* 克隆节点不携带旧事件监听 */
+    neo.textContent = label;
+    old.replaceWith(neo);
+    return neo;
+  }
+  var prevBtn = rebind('#DM_backBtn', '浏览上一位');
+  var nextBtn = rebind('#DM_goHomeBtn', '浏览下一位');
+
+  /* 批次历史栈：支持跨批穿梭，回上一位可回到刚翻过去的那批 */
+  var batches = [], bi = 0, pi = 0;
+
+  function syncPi(){
+    var items = document.querySelectorAll('#children_list li a');
+    items.forEach(function(a, i){ if(a.classList.contains('active')) pi = i; });
+  }
+  function ensureInit(){
+    if(batches.length === 0 && Array.isArray(DM_config.childrenData) && DM_config.childrenData.length){
+      batches.push(DM_config.childrenData);
+      bi = 0;
+      syncPi();
+    }
+  }
+  function show(){
+    DM_config.childrenData = batches[bi];
+    DM_config.isFirst = true; /* 缩略图整排重建为当前批 */
+    DM_config.render(pi);
+  }
+
+  if(nextBtn) nextBtn.addEventListener('click', function(){
+    ensureInit();
+    if(!batches.length) return;
+    syncPi();
+    if(pi + 1 < batches[bi].length){ pi++; show(); }
+    else if(bi + 1 < batches.length){ bi++; pi = 0; show(); }
+    else { /* 最后一批的末位：拉新一批 */
+      DM_config.ajax_get(DM_config.api, function(res){
+        if(res && res.code == 200 && Array.isArray(res.data) && res.data.length){
+          batches.push(res.data);
+          if(batches.length > 50){ batches.shift(); bi--; } /* 防极端长栈 */
+          bi = batches.length - 1;
+          pi = 0;
+          show();
+        }
+      });
+    }
+  });
+  if(prevBtn) prevBtn.addEventListener('click', function(){
+    ensureInit();
+    if(!batches.length) return;
+    syncPi();
+    if(pi > 0){ pi--; show(); }
+    else if(bi > 0){ bi--; pi = batches[bi].length - 1; show(); } /* 回到上一批末位 */
+  });
+}
+</script>
+<!--
+欢迎加入404公益，使用说明如下：
+src：加载资源域名，递增可能有其他样式；
+maincolor: 主题色调或高亮色，可配合您站点主色进行配置；
+jumptime: 自动跳转时间，单位秒，-1为手动点击跳转；
+jumptarget：自动跳转目标网址，默认 / 网站首页；
+tips: 页面短提示，客户端语言为中文默认为“错误提示”，其他为“Oops!”；
+error：页面长提示，客户端语言为中文默认为“该页面找不到或已被删除”，其他为“The page was not found”；
+function diy()}内可以写入自己的javascript代码，用于如修改页面元素等，会在页面加载完成后立即执行；
+你还可以新增CSS代码并利用!important特性，覆盖页面样式；
+项目主页:
+https://www.dnpw.org/404
+-->
